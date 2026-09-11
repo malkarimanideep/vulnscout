@@ -21,7 +21,6 @@ def build_pdf_report(posture_data: dict, filepath: str = "audit_report.pdf"):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # Executive Summary Card
     pdf.set_font("Helvetica", "B", 16)
     pdf.set_text_color(15, 23, 42)
     pdf.cell(0, 8, "1. Executive Posture Overview", ln=True)
@@ -30,7 +29,6 @@ def build_pdf_report(posture_data: dict, filepath: str = "audit_report.pdf"):
     pdf.multi_cell(0, 6, f"This document outlines continuous endpoint detection, container exposures, and software composition analysis (SCA) findings captured for host '{posture_data['telemetry']['hostname']}'.")
     pdf.ln(4)
 
-    # Metrics Table
     pdf.set_fill_color(241, 245, 249)
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(45, 8, "Overall Risk Score", 1, 0, "C", True)
@@ -45,7 +43,6 @@ def build_pdf_report(posture_data: dict, filepath: str = "audit_report.pdf"):
     pdf.cell(45, 8, str(len(posture_data['containers'])), 1, 1, "C")
     pdf.ln(8)
 
-    # Software Composition Analysis (SCA) & CVE Backlog
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(15, 23, 42)
     pdf.cell(0, 8, "2. Prioritized CVEs & Exploit Prediction (EPSS)", ln=True)
@@ -72,7 +69,6 @@ def build_pdf_report(posture_data: dict, filepath: str = "audit_report.pdf"):
 
     pdf.ln(8)
 
-    # Attack Surface Network Daemons
     pdf.set_font("Helvetica", "B", 14)
     pdf.cell(0, 8, "3. Network Attack Surface & MITRE ATT&CK Mapping", ln=True)
     pdf.set_font("Helvetica", "B", 9)
@@ -87,7 +83,7 @@ def build_pdf_report(posture_data: dict, filepath: str = "audit_report.pdf"):
         pdf.cell(25, 6, f"{s['port']}/{s['protocol']}", 1, 0, "C")
         pdf.cell(45, 6, s['process_name'], 1)
         pdf.cell(30, 6, str(s['pid']), 1, 0, "C")
-        pdf.cell(90, 6, f"{s['mitre']['technique']} - {s['mitre']['name']}", 1, 1)
+        pdf.cell(90, 6, f"{s['mitre']['id']} - {s['mitre']['name']}", 1, 1)
 
     pdf.output(filepath)
     return filepath

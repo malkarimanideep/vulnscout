@@ -24,7 +24,6 @@ ALL_TACTICS = [
 ]
 
 def hash_binary(filepath: str) -> str:
-    """Calculates SHA-256 hash of a running executable."""
     if not filepath or not os.path.exists(filepath):
         return "UNKNOWN_OR_VIRTUAL"
     if filepath in CACHE["hashes"]:
@@ -115,7 +114,6 @@ def get_container_telemetry():
     return containers
 
 def get_deep_process_telemetry():
-    """Deep process forensics: SHA-256 binary validation, PPID trees, fileless detection."""
     sockets = []
     seen = set()
     try:
@@ -134,7 +132,6 @@ def get_deep_process_telemetry():
                         if port not in seen:
                             seen.add(port)
                             
-                            # Forensic extraction
                             ppid = 0
                             exe_path = "Unknown"
                             sha256 = "N/A"
@@ -145,7 +142,6 @@ def get_deep_process_telemetry():
                                 ppid = proc.ppid()
                                 exe_path = proc.exe()
                                 sha256 = hash_binary(exe_path)
-                                # Deleted binary heuristic (memory running without disk binary)
                                 if exe_path and not os.path.exists(exe_path):
                                     fileless_risk = True
                             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -179,7 +175,6 @@ def collect_full_posture():
     sbom_vulns = scan_local_sbom()
     containers = get_container_telemetry()
 
-    # Build MITRE Coverage Matrix
     mitre_summary = {tactic: [] for tactic in ALL_TACTICS}
     for p in processes:
         tac = p["mitre"]["tactic"]
