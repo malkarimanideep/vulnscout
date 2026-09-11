@@ -7,7 +7,7 @@ import os
 from scanner import collect_full_posture, contain_process
 from report_generator import build_pdf_report
 
-app = FastAPI(title="VulnScout Unified Posture & EDR Platform", version="4.0.0")
+app = FastAPI(title="VulnScout Unified Posture & EDR Platform", version="4.5.0")
 
 def init_db():
     with sqlite3.connect("scans.db") as conn:
@@ -37,9 +37,9 @@ DASHBOARD_HTML = """
 </head>
 <body class="bg-[#080c14] text-slate-200 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
 
-    <!-- Top Navigation Bar -->
+    <!-- Header Navigation -->
     <header class="border-b border-slate-800/80 bg-[#0d1322]/80 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-[1680px] mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="max-w-[1720px] mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="h-9 w-9 rounded-lg bg-gradient-to-tr from-indigo-500 via-sky-500 to-emerald-400 p-[1px] flex items-center justify-center shadow-lg shadow-indigo-500/10">
                     <div class="w-full h-full bg-[#080c14] rounded-lg flex items-center justify-center font-mono font-black text-white text-sm">
@@ -49,30 +49,31 @@ DASHBOARD_HTML = """
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="font-extrabold text-white text-base tracking-tight">VulnScout</span>
-                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">Unified ASPM + EDR</span>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">Unified ASPM + Forensics EDR</span>
                     </div>
-                    <p class="text-[11px] text-slate-400">Autonomous Exposure Management & Remediation Platform</p>
+                    <p class="text-[11px] text-slate-400">Autonomous Threat Intelligence, Binary Integrity & Remediation</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-3">
+                <button onclick="toggleMitreModal()" class="flex items-center gap-2 text-xs font-mono bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700 transition">
+                    MITRE ATT&CK Matrix
+                </button>
                 <a href="/api/report/pdf" download class="flex items-center gap-2 text-xs font-mono bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg shadow-md transition font-medium">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Export Audit PDF
                 </a>
-                <button onclick="syncAll()" class="text-xs font-mono bg-slate-800/80 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700 transition">
+                <button onclick="syncAll()" class="text-xs font-mono bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-lg border border-slate-700 transition">
                     Sync Intelligence
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="max-w-[1680px] mx-auto px-6 py-6 flex-1 w-full space-y-6">
+    <!-- Main Container -->
+    <main class="max-w-[1720px] mx-auto px-6 py-6 flex-1 w-full space-y-6">
 
-        <!-- Top Posture Metric Cards -->
+        <!-- Top Metrics Cards -->
         <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            
             <div class="bg-[#0f172a]/70 border border-slate-800 p-5 rounded-2xl shadow-sm">
                 <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Host Attack Posture</span>
                 <div class="flex items-baseline gap-2 mt-2">
@@ -85,7 +86,7 @@ DASHBOARD_HTML = """
             <div class="bg-[#0f172a]/70 border border-rose-950/40 p-5 rounded-2xl shadow-sm">
                 <span class="text-[11px] font-mono text-rose-400 uppercase tracking-wider">High EPSS Exploits (>40%)</span>
                 <div id="epssCount" class="text-4xl font-extrabold font-mono text-rose-500 mt-2">0</div>
-                <span class="text-[11px] font-mono text-slate-500 mt-1 block">Active Weaponized Threat Probability</span>
+                <span class="text-[11px] font-mono text-slate-500 mt-1 block">Weaponized Threat Probability</span>
             </div>
 
             <div class="bg-[#0f172a]/70 border border-indigo-950/40 p-5 rounded-2xl shadow-sm">
@@ -101,15 +102,15 @@ DASHBOARD_HTML = """
             </div>
         </section>
 
-        <!-- Dynamic Remediation Feedback Banner -->
+        <!-- Containment Action Banner -->
         <div id="actionBanner" class="hidden p-4 rounded-xl text-xs font-mono border"></div>
 
-        <!-- Pillar 1: Software Composition Analysis (SCA) & EPSS Exploits -->
+        <!-- Pillar 1: Software Composition Analysis (SCA) & EPSS -->
         <section class="bg-[#0f172a]/70 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="px-6 py-4 border-b border-slate-800 bg-[#0d1322]/60 flex justify-between items-center">
                 <div>
                     <h2 class="text-sm font-bold text-white uppercase tracking-wider">Software Composition Analysis (SCA) & EPSS Matrix</h2>
-                    <p class="text-xs text-slate-400">Prioritizing real-world exploit likelihood over raw CVSS scores</p>
+                    <p class="text-xs text-slate-400">Correlated OpenSSF / OSV records with Exploit Prediction rates</p>
                 </div>
                 <span class="text-xs font-mono text-indigo-400 bg-indigo-950/50 px-2.5 py-1 rounded border border-indigo-500/20">Live OSV.dev Feed</span>
             </div>
@@ -120,7 +121,7 @@ DASHBOARD_HTML = """
                             <th class="py-3 px-6">Vulnerability ID</th>
                             <th class="py-3 px-6">Affected Package</th>
                             <th class="py-3 px-6">Severity (CVSS)</th>
-                            <th class="py-3 px-6">EPSS Probability</th>
+                            <th class="py-3 px-6">EPSS Rate</th>
                             <th class="py-3 px-6">Remediation SLA</th>
                             <th class="py-3 px-6 text-right">Lifecycle</th>
                         </tr>
@@ -132,14 +133,14 @@ DASHBOARD_HTML = """
             </div>
         </section>
 
-        <!-- Pillar 2: Container Security & Runtime Exposure -->
+        <!-- Pillar 2: Container Security -->
         <section class="bg-[#0f172a]/70 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="px-6 py-4 border-b border-slate-800 bg-[#0d1322]/60 flex justify-between items-center">
                 <div>
                     <h2 class="text-sm font-bold text-white uppercase tracking-wider">Container Infrastructure & Microservice Posture</h2>
-                    <p class="text-xs text-slate-400">Inspecting image layers, container ports, and root execution privileges</p>
+                    <p class="text-xs text-slate-400">Inspecting image layers, container ports, and root privilege boundaries</p>
                 </div>
-                <span class="text-xs font-mono text-slate-400">Docker Runtime Daemon</span>
+                <span class="text-xs font-mono text-slate-400">Docker Runtime</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left font-mono text-xs">
@@ -160,28 +161,29 @@ DASHBOARD_HTML = """
             </div>
         </section>
 
-        <!-- Pillar 3: Endpoint Detection & Threat Hunting Matrix (With Freeze/Kill Containment) -->
+        <!-- Pillar 3: Endpoint Forensics, Process Trees & Binary Integrity -->
         <section class="bg-[#0f172a]/70 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="px-6 py-4 border-b border-slate-800 bg-[#0d1322]/60 flex justify-between items-center">
                 <div>
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Host Attack Surface & MITRE ATT&CK Mapping</h2>
-                    <p class="text-xs text-slate-400">Direct socket-to-process correlation with forensic freeze capabilities</p>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Endpoint Process Forensics & Binary Integrity</h2>
+                    <p class="text-xs text-slate-400">SHA-256 binary validation, Parent Process ID (PPID) trees, and MITRE mapping</p>
                 </div>
-                <span class="text-xs font-mono text-emerald-400">EDR Agent Active</span>
+                <span class="text-xs font-mono text-emerald-400">Forensics Telemetry Active</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left font-mono text-xs">
                     <thead>
                         <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/30 text-[11px] uppercase">
                             <th class="py-3 px-6">Port / Protocol</th>
-                            <th class="py-3 px-6">Process Name</th>
-                            <th class="py-3 px-6">PID</th>
-                            <th class="py-3 px-6">MITRE Technique</th>
-                            <th class="py-3 px-6 text-right">Containment Actions</th>
+                            <th class="py-3 px-6">Process (PID / PPID)</th>
+                            <th class="py-3 px-6">SHA-256 Binary Hash</th>
+                            <th class="py-3 px-6">Integrity Status</th>
+                            <th class="py-3 px-6">MITRE Classification</th>
+                            <th class="py-3 px-6 text-right">EDR Action</th>
                         </tr>
                     </thead>
                     <tbody id="socketTableBody" class="divide-y divide-slate-800/60">
-                        <tr><td colspan="5" class="p-6 text-center text-slate-500">Enumerating listening sockets...</td></tr>
+                        <tr><td colspan="6" class="p-6 text-center text-slate-500">Enumerating process trees...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -189,13 +191,36 @@ DASHBOARD_HTML = """
 
     </main>
 
+    <!-- Interactive MITRE ATT&CK Matrix Modal -->
+    <div id="mitreModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+        <div class="bg-[#0f172a] border border-slate-800 rounded-2xl max-w-6xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-[#0d1322]">
+                <div>
+                    <h3 class="font-bold text-white text-base">MITRE ATT&CK Enterprise Matrix (Observed Attack Surface)</h3>
+                    <p class="text-xs text-slate-400">Active telemetry mapped across standard tactics and techniques</p>
+                </div>
+                <button onclick="toggleMitreModal()" class="text-slate-400 hover:text-white font-mono text-lg px-2">✕</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="mitreGrid" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let cachedMitre = {};
+
+        function toggleMitreModal() {
+            const m = document.getElementById('mitreModal');
+            m.classList.toggle('hidden');
+        }
+
         async function syncAll() {
             try {
                 const res = await fetch('/api/posture');
                 const data = await res.json();
+                cachedMitre = data.mitre_matrix;
 
-                // Metric Cards
                 document.getElementById('riskScore').textContent = data.exposure_score;
                 document.getElementById('surfaceCount').textContent = data.sockets.length + data.containers.length;
                 document.getElementById('sbomCount').textContent = data.sbom_vulns.length;
@@ -246,33 +271,74 @@ DASHBOARD_HTML = """
                     </tr>
                 `).join('');
 
-                // Render Sockets / Processes Table
+                // Render Sockets + Binary Forensics
                 document.getElementById('socketTableBody').innerHTML = data.sockets.map(s => `
                     <tr class="hover:bg-slate-800/20">
                         <td class="py-3 px-6 font-bold text-white">${s.port} / ${s.protocol}</td>
-                        <td class="py-3 px-6 text-slate-200 font-semibold">${s.process_name}</td>
-                        <td class="py-3 px-6 text-slate-400">${s.pid}</td>
+                        <td class="py-3 px-6">
+                            <div class="text-slate-200 font-semibold">${s.process_name}</div>
+                            <div class="text-[10px] text-slate-500">PID: ${s.pid} | PPID: ${s.ppid}</div>
+                        </td>
+                        <td class="py-3 px-6 text-slate-400 font-mono text-[11px] truncate max-w-xs" title="${s.sha256}">
+                            ${s.sha256.length > 20 ? s.sha256.substring(0, 16) + '...' : s.sha256}
+                        </td>
+                        <td class="py-3 px-6">
+                            ${s.fileless_risk ? `
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold animate-pulse">
+                                    FILELESS / UNLINKED
+                                </span>
+                            ` : `
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    VERIFIED DISK BINARY
+                                </span>
+                            `}
+                        </td>
                         <td class="py-3 px-6">
                             <span class="text-xs text-indigo-400 bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-500/20">
-                                ${s.mitre.technique}: ${s.mitre.name}
+                                ${s.mitre.id}: ${s.mitre.name}
                             </span>
                         </td>
                         <td class="py-3 px-6 text-right space-x-2">
                             ${s.pid > 1 ? `
-                                <button onclick="remediate(${s.pid}, 'freeze')" class="bg-amber-600/80 hover:bg-amber-600 text-white px-2.5 py-1 rounded text-[11px] transition">
-                                    Freeze (SIGSTOP)
+                                <button onclick="remediate(${s.pid}, 'freeze')" class="bg-amber-600/80 hover:bg-amber-600 text-white px-2 py-1 rounded text-[11px]">
+                                    Freeze
                                 </button>
-                                <button onclick="remediate(${s.pid}, 'kill')" class="bg-rose-600/80 hover:bg-rose-600 text-white px-2.5 py-1 rounded text-[11px] transition">
-                                    Kill (SIGTERM)
+                                <button onclick="remediate(${s.pid}, 'kill')" class="bg-rose-600/80 hover:bg-rose-600 text-white px-2 py-1 rounded text-[11px]">
+                                    Kill
                                 </button>
-                            ` : '<span class="text-slate-600">Protected Kernel PID</span>'}
+                            ` : '<span class="text-slate-600">Kernel PID</span>'}
                         </td>
                     </tr>
                 `).join('');
 
+                // Render ATT&CK Grid
+                renderMitreGrid();
+
             } catch (err) {
-                console.error("Telemetry failed:", err);
+                console.error("Telemetry failure:", err);
             }
+        }
+
+        function renderMitreGrid() {
+            const container = document.getElementById('mitreGrid');
+            container.innerHTML = Object.entries(cachedMitre).map(([tactic, items]) => `
+                <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">
+                            ${tactic}
+                        </div>
+                        <div class="space-y-1.5">
+                            ${items.length ? items.map(i => `
+                                <div class="bg-rose-950/40 border border-rose-500/30 rounded p-1.5 text-[10px]">
+                                    <div class="font-bold text-rose-300">${i.technique}</div>
+                                    <div class="text-slate-300 truncate">${i.name}</div>
+                                    <div class="text-slate-500 mt-0.5">Port ${i.port} (${i.process})</div>
+                                </div>
+                            `).join('') : '<div class="text-[10px] text-slate-600">No active techniques observed</div>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         async function remediate(pid, action) {
@@ -294,7 +360,7 @@ DASHBOARD_HTML = """
         }
 
         syncAll();
-        setInterval(syncAll, 8000);
+        setInterval(syncAll, 10000);
     </script>
 </body>
 </html>
